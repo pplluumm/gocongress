@@ -1,5 +1,6 @@
 %h2= @plan_category.name
 = markdown_if_present(@plan_category.description)
+= defined?(@plan_category.extended_description) ? markdown_if_present(@plan_category.extended_description) : nil
 
 = form_for @plan_category do |f|
   = render :partial => "shared/error_messages", :locals => { :resource => @plan_category }
@@ -21,7 +22,6 @@
               %td= number_field_tag "plan_order[#{p.id}]", p.cat_order, min: 1, step: 1, size: 2
             %td
               = link_to p.name, p
-              = "(disabled)" if p.disabled?
             = render :partial => "plan_table_common_cells", :locals => { :plan => p }
 
   = render :partial => "explain_availability"
@@ -36,5 +36,6 @@
 - if can? :manage, PlanCategory
   .inline-children
     = button_to 'New Plan', new_plan_path, :method => :get
+    - if @year.registration_phase == 'closed'
+      = button_to 'Delete this Category', @plan_category, :method => :delete, :data => {:confirm => 'Really delete this category? Are you sure?'}
     = button_to 'Edit this Category', edit_plan_category_path(@plan_category), :method => :get
-    = button_to 'Delete this Category', @plan_category, :method => :delete, :data => {:confirm => 'Really delete this category? Are you sure?'}

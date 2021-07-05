@@ -1,6 +1,6 @@
-require 'spec_helper'
+require "rails_helper"
 
-describe Devise::PasswordsController do
+RSpec.describe Devise::PasswordsController, :type => :controller do
   render_views
 
   before do
@@ -10,8 +10,8 @@ describe Devise::PasswordsController do
   describe '#create' do
     it "creates a reset password token" do
       u = create :user
-      post :create, :user => {:email => u.email, :year => u.year}, :year => u.year
-      response.should redirect_to new_user_session_path
+      post :create, params: { user: { email: u.email, year: u.year }, year: u.year }
+      expect(response).to redirect_to new_user_session_path
     end
 
     it "creates a token for the correct user" do
@@ -21,24 +21,25 @@ describe Devise::PasswordsController do
       user2012 = create :user, :email => "jared@jaredbeck.com", :year => 2012
 
       # Create a reset password token
-      post :create, :user => {:email => user2012.email, :year => 2012}, :year => 2012
+      post :create, params: { user: { email: user2012.email, year: 2012 }, year: 2012 }
+      @reset_password_token = user2012.send_reset_password_instructions
 
       # We expect the delivered email to include an anchor with the correct
       # year in the path in the href.  For example:
       # <a href="http://www.gocongress.org/2012/users/password/edit ...
-      body = HTML::Document.new(ActionMailer::Base.deliveries.last.body.to_s).root
-      assert_select body, 'a[href*=2012]'
-      assert_select body, "a[href*=#{user2012.reset_password_token}]"
+      body = Nokogiri::HTML.parse(ActionMailer::Base.deliveries.last.body.to_s).root
+      assert_select body, 'a[href*=?]', '2012'
+      assert_select body, 'a[href*=?]', @reset_password_token
     end
   end
 
   describe '#new' do
     it "pw reset form has both year and email" do
       u = create :user
-      get :new, :year => u.year
-      response.should be_success
+      get :new, params: { year: u.year }
+      expect(response).to be_success
       assert_select "input[name*=email]"
-      assert_select "input[name*=year][value=#{u.year}]"
+      assert_select 'input[name*=year][value=?]', u.year.to_s
     end
   end
 end

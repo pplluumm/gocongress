@@ -1,9 +1,10 @@
 select
-  u.id * $2 as user_id,
+  u.id as user_id,
   u.email as user_email,
-  a.id * $2 as attendee_id,
+  a.id as attendee_id,
   a.given_name,
   a.family_name,
+  a.alternate_name,
   p.name as plan_name,
 
   /* Plan prices are stored in integer cents.  Convert to dollars. */

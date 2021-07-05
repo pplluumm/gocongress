@@ -30,6 +30,12 @@
         = Attendee.model_name.human.pluralize
         cannot select this
         = Plan.model_name.human.downcase
+    .field
+      = f.label :show_disabled
+      = f.check_box :show_disabled
+      %span.smalltext
+        = Attendee.model_name.human.pluralize
+        can see this plan even if it is disabled
 
   %fieldset
     %legend Price
@@ -46,19 +52,21 @@
       %span.smalltext{:style => "display: inline-block; padding: 3px 0px 0px 0px; width: 375px;"}
         Selectable, but not purchaseable through the website. "Contact the
         Registrar" will be shown instead of the price. Price must be zero.
+    .field
+      = f.label :n_a
+      = f.check_box :n_a
+      %span.smalltext
+        "N/A" will be shown instead of "Free" if the price is zero.
 
   %fieldset
     %legend Attendee Age Requirements
     %p Certain plans are intended for youth, for teens, or for adults.
     .field
       = f.label :age_min
-      = f.number_field :age_min, size: 3
+      = f.number_field :age_min, size: 3, min: 0, value: 0
     .field
       = f.label :age_max
       = f.number_field :age_max, size: 3
       %span.smalltext (optional)
 
-  %fieldset
-    .field
-      %label
-      = f.submit 'Save'
+  = f.submit 'Save', :class => 'button button-large pull-right save'

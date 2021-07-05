@@ -5,7 +5,7 @@ from attendees
 left join (
   select t.user_id, sum(t.amount) as total
   from transactions t
-  where t.trantype in ('C', 'S') and t.year = :year
+  where t.trantype in ('C', 'A', 'P', 'S') and t.year = :year
   group by t.user_id
 ) credits on credits.user_id = attendees.user_id
 
@@ -17,31 +17,32 @@ left join (
   group by t.user_id
 ) debits on debits.user_id = attendees.user_id
 
--- sum of plan costs
+-- count of plans
 left join (
-  select ap.attendee_id, sum(p.price) as total
+  select ap.attendee_id, count(ap.id) as n
   from attendee_plans ap
-  inner join plans p on p.id = ap.plan_id
   where ap.year = :year
-    and p.year = :year
   group by ap.attendee_id
-) plans on plans.attendee_id = attendees.id
+) plan_count on plan_count.attendee_id = attendees.id
 
--- sum of activity costs
-left join (
-  select aa.attendee_id, sum(a.price) as total
-  from attendee_activities aa
-  inner join activities a on a.id = aa.activity_id
-  where aa.year = :year
-    and a.year = :year
-  group by aa.attendee_id
-) activities on activities.attendee_id = attendees.id
-
-where attendees.year = :year
+where attendees.year = :year and attendees.cancelled = false
 
   -- must have at least one plan
-  and plans.total > 0
+  and plan_count.n > 0
 
-  -- credits minus debits must satisfy total of invoice
-  and coalesce(credits.total, 0) - coalesce(debits.total, 0)
-    >= coalesce(plans.total, 0) + coalesce(activities.total, 0)
+  -- credits minus debits must be at least $70
+  and coalesce(credits.total, 0) - coalesce(debits.total, 0) >= 7000
+
+  -- exclude attendees under eighteen
+  and attendees.birth_date < (:congress_start_date::date - interval '18 years')
+
+  -- exclude cancelled attendees
+  and not exists (
+    select ap.attendee_id
+    from attendee_plans ap
+    inner join plans p on p.id = ap.plan_id
+    where attendees.id = ap.attendee_id
+      and ap.year = :year
+      and p.year = :year
+      and p.description like 'Cancellation'
+  )

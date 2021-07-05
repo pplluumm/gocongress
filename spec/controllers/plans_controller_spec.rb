@@ -1,27 +1,28 @@
-require "spec_helper"
+require "rails_helper"
 
-describe PlansController do
-  let(:plan) { create :plan }
+RSpec.describe PlansController, :type => :controller do
+  let(:category) { create :plan_category }
+  let(:plan) { create :plan, plan_category_id: category.id }
+  let(:plan_attributes) { { :price => 1, :name => "Plan", :description => "Description", :age_min => 0 } }
 
   context 'as a visitor' do
     it 'can show plan' do
-      get :show, :id => plan.id, :year => plan.year
-      response.should be_successful
+      get :show, params: { id: plan.id, year: plan.year }
+      expect(response).to be_successful
     end
   end
 
   context 'as a user' do
     it 'cannot get new' do
       sign_in create :user
-      get :new, :year => Time.now.year
-      response.should be_forbidden
+      get :new, params: { year: Time.now.year }
+      expect(response).to be_forbidden
     end
 
     it 'cannot create' do
       sign_in create :user
-      attrs = accessible_attributes_for plan
-      post :create, :plan => attrs, :year => Time.now.year
-      response.should be_forbidden
+      post :create, params: { year: Time.now.year, plan: { price: 1, name: "Plan", description: "Description", age_min: 0, plan_category_id: category.id } }
+      expect(response).to be_forbidden
     end
   end
 
@@ -30,29 +31,29 @@ describe PlansController do
     before do sign_in admin end
 
     it 'can create' do
-      attrs = accessible_attributes_for plan
-      expect { post :create, :plan => attrs, :year => plan.year
-        }.to change { Plan.count }.by(+1)
-      response.should redirect_to plan_category_path plan.plan_category
+      expect {
+        post :create, params: { year: Time.now.year, plan: { price: 1, name: "Plan", description: "Description", age_min: 0, plan_category_id: category.id } }
+      }.to change { Plan.count }.by(+1)
+      expect(response).to redirect_to plan_category_path plan.plan_category
     end
 
     it 'cannot destroy when attendees have selected the plan' do
       plan = create :plan
       plan.attendees << create(:attendee)
       expect {
-        delete :destroy, year: plan.year, id: plan.id
+        delete :destroy, params: { year: plan.year, id: plan.id }
       }.to_not change{ Plan.count }
-      flash[:alert].should == 'Cannot delete plan because attendees have already selected it'
-      response.should redirect_to(plan_path(plan))
+      expect(flash[:alert]).to eq('Cannot delete plan because attendees have already selected it.')
+      expect(response).to redirect_to(plan_path(plan))
     end
 
     it 'can update max quantity' do
       new_max_quantity = 100+rand(10)
-      plan.max_quantity.should_not == new_max_quantity
-      attrs = accessible_attributes_for(plan).merge(max_quantity: new_max_quantity)
-      put :update, :id => plan.id, :plan => attrs, :year => plan.year
-      Plan.find(plan.id).max_quantity.should == new_max_quantity
-      response.should redirect_to plan_category_path plan.plan_category
+      expect(plan.max_quantity).not_to eq(new_max_quantity)
+      attrs = plan_attributes.merge(max_quantity: new_max_quantity)
+      patch :update, params: { id: plan.id, plan: attrs, year: plan.year }
+      expect(Plan.find(plan.id).max_quantity).to eq(new_max_quantity)
+      expect(response).to redirect_to plan_category_path plan.plan_category
     end
   end
 end

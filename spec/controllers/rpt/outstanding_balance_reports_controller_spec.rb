@@ -1,7 +1,7 @@
-require "spec_helper"
+require "rails_helper"
 require "controllers/rpt/shared_examples_for_reports"
 
-describe Rpt::OutstandingBalanceReportsController do
+RSpec.describe Rpt::OutstandingBalanceReportsController, :type => :controller do
   render_views
 
   it_behaves_like "a report", %w[html]
@@ -24,9 +24,8 @@ describe Rpt::OutstandingBalanceReportsController do
       a3 = create :attendee
       paid_exactly = a3.user
 
-      get :show, :year => Time.now.year
-      assigns(:users).map(&:id).should =~ [paid_too_little.id, paid_too_much.id]
+      get :show, params: { year: Time.now.year }
+      expect(assigns(:users).map(&:id)).to match_array([paid_too_little.id, paid_too_much.id])
     end
   end
-
 end

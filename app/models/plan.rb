@@ -1,16 +1,12 @@
-class Plan < ActiveRecord::Base
+class Plan < ApplicationRecord
   include YearlyModel
   include Purchasable
-
-attr_accessible :cat_order, :daily, :name, :price, :age_min,
-  :age_max, :description, :disabled, :inventory, :max_quantity,
-  :needs_staff_approval, :plan_category_id
 
 # Associations
 # ------------
 
 belongs_to :plan_category
-has_many :attendee_plans, :dependent => :restrict
+has_many :attendee_plans, :dependent => :restrict_with_exception
 has_many :attendees, :through => :attendee_plans
 
 # Validations
@@ -24,6 +20,7 @@ validates_each :daily do |record, atr, value|
 end
 
 validates :disabled, :inclusion => { :in => [true, false] }
+validates :show_disabled, :inclusion => { :in => [true, false] }
 validates_presence_of :name, :description, :price, :age_min, :plan_category_id
 validates_length_of :name, :maximum => 50
 validates_numericality_of :age_min, :only_integer => true, :greater_than_or_equal_to => 0
@@ -45,7 +42,7 @@ validates :inventory,
     }
 
 validates_each :inventory do |record, attr, value|
-  cnt = record.attendees.count
+  cnt = record.attendees.where(cancelled: false).count
   if value.present? && value < cnt
     record.errors.add(attr, " cannot be decreased to #{value} because
       #{cnt} #{Attendee.model_name.human.pluralize.downcase} have
@@ -68,8 +65,8 @@ end
 scope :appropriate_for_age, lambda { |age|
   where("(age_min is null or age_min <= ?) and (age_max is null or age_max >= ?)", age, age)
 }
-scope :alphabetical, order(:name)
-scope :enabled, where(disabled: false)
+scope :alphabetical, -> { order(:name) }
+scope :enabled, -> { where(disabled: false) }
 
 # Class Methods
 # -------------
@@ -105,6 +102,10 @@ def describe_inventory_available
   inventory.present? ? "#{inventory_available} of #{inventory}" : "Unlimited"
 end
 
+def inventory_cancelled
+  attendee_plans.joins(:attendee).where(attendees: { cancelled: true }).sum(:quantity)
+end
+
 def inventory_consumed(excluded_attendee=nil)
   attendee_plans_except(excluded_attendee).sum(:quantity)
 end
@@ -112,13 +113,18 @@ end
 def inventory_available(excluded_attendee=nil)
   return nil if inventory.nil?
   c = inventory_consumed(excluded_attendee)
-  c > inventory ? 0 : inventory - c
+  n = inventory_cancelled
+  c - n > inventory ? 0 : inventory + n - c
 end
 
 private
 
 def attendee_plans_except(atnd=nil)
-  atnd.nil? ? attendee_plans : attendee_plans.where('attendee_id <> ?', atnd.id)
+  if atnd.nil? || atnd.new_record?
+    attendee_plans
+  else
+    attendee_plans.where('attendee_id <> ?', atnd.id)
+  end
 end
 
 end

@@ -1,6 +1,6 @@
-require "spec_helper"
+require "rails_helper"
 
-describe ReportsController do
+RSpec.describe ReportsController, :type => :controller do
   let(:admin) { create :admin }
   render_views
 
@@ -9,14 +9,14 @@ describe ReportsController do
 
     # The following reports take no paramters, and only respond to html
     %w[index invoices emails activities].each do |r|
-      get r, :year => admin.year
-      response.should be_success
+      get r, params: { year: admin.year }
+      expect(response).to be_success
     end
 
     # These reports take a min and max parameter
     %w[atn_reg_sheets user_invoices].each do |r|
-      get r, :year => admin.year, :min => 'a', :max => 'z'
-      response.should be_success
+      get r, params: { year: admin.year, min: 'a', max: 'z' }
+      expect(response).to be_success
     end
   end
 
@@ -24,10 +24,10 @@ describe ReportsController do
     it "assigns certain ivars" do
       a = create :attendee
       sign_in admin
-      get :atn_reg_sheets, :year => admin.year, :min => 'a', :max => 'z'
-      response.should be_success
-      assigns(:attendees).should == [a]
-      assigns(:attendee_attr_names).should_not be_empty
+      get :atn_reg_sheets, params: { year: admin.year, min: 'a', max: 'z' }
+      expect(response).to be_success
+      expect(assigns(:attendees)).to eq([a])
+      expect(assigns(:attendee_attr_names)).not_to be_empty
     end
   end
 
@@ -48,8 +48,8 @@ describe ReportsController do
       end
 
       # Get the report, and expect the users to be filtered.
-      get :user_invoices, :year => admin.year, :min => "a", :max => "c"
-      assigns(:users).should have_exactly(3).users
+      get :user_invoices, params: { year: admin.year, min: "a", max: "c" }
+      expect(assigns(:users).size).to eq(3)
     end
   end
 end

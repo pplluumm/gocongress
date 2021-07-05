@@ -5,6 +5,14 @@ module ApplicationHelper
     signed_in?(nil)
   end
 
+  def asset_file?(subdirectory, filename)
+    File.file?(File.join(Rails.root, 'app', 'assets', subdirectory, filename))
+  end
+
+  def asset_exists?(path)
+    Rails.application.assets.resolve(path).present? 
+  end
+
   # When you want to use `button_to` but your url has a query string
   # https://github.com/rails/rails/issues/2158
   def button_to_get text, url, id, css_class = nil
@@ -21,11 +29,15 @@ module ApplicationHelper
     number_to_currency(x.to_f / 100, opts)
   end
 
+  def image_file?(image)
+    asset_file?('images', image)
+  end
+
   def link_to_my_account_or_to_register
     if show_my_account_anchor?
       path = user_path id: current_user.id, year: current_user.year
       link_to "My Account", path
-    elsif @year.registration_phase == "open"
+    elsif @year.registration_phase == "open" && @year.year != 2019
       link_to "Start Here", new_user_registration_path
     end
   end
@@ -49,9 +61,15 @@ module ApplicationHelper
   end
 
   def link_to_liability_release()
-    link_to "Liability Release",
-      "/docs/liability_release/USGC#{@year.year}-Liability-Release.pdf",
-      :target => '_blank'
+    if @year.year != 2016 && @year.year != 2020
+      link_to "Youth Attendance Agreement",
+        asset_path("liability_release/USGC#{@year.year}-Liability-Release.pdf"),
+        :target => '_blank'
+    elsif @year.year == 2020
+      link_to "Youth Attendance Agreement", "/2020/content_categories/68"
+    else
+      "Youth Attendance Agreement"
+    end
   end
 
   def link_to_tel text
@@ -61,17 +79,33 @@ module ApplicationHelper
     link_to text, "tel:#{number}"
   end
 
+  def markdown(content)
+    @markdown ||= Redcarpet::Markdown.new(MarkdownRenderer, {
+      autolink: true,
+      space_after_headers: true,
+      highlight: true,
+      footnotes: true,
+      tables: true
+    })
+    @markdown.render(content)
+  end
+
+  def smarty(s)
+    Redcarpet::Render::SmartyPants.render(s)
+  end
+
   def markdown_if_present(s)
-    s.blank? ? '' : Markdown.new(s).to_html.html_safe
+    s.blank? ? '' : markdown(s).html_safe
   end
 
   def markdown_summary model, atr, len
     txt = model.send(atr).to_s
     smry_txt = truncate(txt, length: len, separator: ' ')
+    html = smry_txt.html_safe
     if txt.length > len
-      smry_txt += ' ' + link_to('more', model)
+      html += ' '.html_safe + link_to('more', model).html_safe
     end
-    markdown_if_present smry_txt
+    markdown(html).html_safe
   end
 
   def noun_with_article(singular, collection)

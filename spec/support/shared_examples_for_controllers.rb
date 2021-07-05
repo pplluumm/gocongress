@@ -10,7 +10,7 @@
 # 1. a factory of the same name exists
 # 2. a path helper exists for the index action, eg. contents_path
 #
-shared_examples "an admin controller" do |model_name|
+RSpec.shared_examples "an admin controller" do |model_name|
   let(:resource) { create model_name }
   let(:resource_attrs) { accessible_attributes_for model_name }
   let(:year) { Time.now.year }
@@ -26,45 +26,49 @@ shared_examples "an admin controller" do |model_name|
     describe "index" do
       render_views
       it "succeeds" do
-        get :index, year: year
-        response.should be_successful
+        get :index, params: { year: year }
+        if model_name == :plan_category && year == 2019
+          expect(response.status).to eq(302)
+        else
+          expect(response).to be_successful
+        end
       end
     end
     describe "create" do
       it "is forbidden" do
         expect {
-          post :create, params_for_create(model_name)
+          post :create, params: params_for_create(model_name)
         }.to_not change{ resource_class.count }
-        response.status.should == 403
+        expect(response.status).to eq(403)
       end
     end
     describe "edit" do
       it "is forbidden" do
-        get :edit, year: resource.year, id: resource.id
-        response.status.should == 403
+        get :edit, params: { year: resource.year, id: resource.id }
+        expect(response.status).to eq(403)
       end
     end
     describe "delete" do
       it "is forbidden" do
-        resource.should be_present # create outside expect()
+        expect(resource).to be_present # create outside expect()
         expect {
-          delete :destroy, year: resource.year, id: resource.id
+          delete :destroy, params: { year: resource.year, id: resource.id }
         }.to_not change{ resource_class.count }
-        resource_class.all.should include(resource)
-        response.status.should == 403
+        expect(resource_class.all).to include(resource)
+        expect(response.status).to eq(403)
       end
     end
     describe "show" do
       it "succeeds" do
-        get :show, year: resource.year, id: resource.id
-        response.should be_success
-        assigns(model_name).should == resource
+        get :show, params: { year: resource.year, id: resource.id }
+        expect(response).to be_success
+        expect(assigns(model_name)).to eq(resource)
       end
     end
     describe "update" do
       it "is forbidden" do
-        put :update, params_for_update(model_name)
-        response.status.should == 403
+        patch :update, params: params_for_update(model_name)
+        expect(response.status).to eq(403)
       end
     end
   end
@@ -77,67 +81,67 @@ shared_examples "an admin controller" do |model_name|
 
     describe "index" do
       it "succeeds" do
-        get :index, year: year
-        response.should be_successful
+        get :index, params: { year: year }
+        expect(response).to be_successful
       end
     end
     describe "create" do
       it "succeeds" do
         expect {
-          post :create, params_for_create(model_name)
+          post :create, params: params_for_create(model_name)
         }.to change{ resource_class.yr(year).count }.by(+1)
 
         # not all controllers redirect to the index, some go to the show
-        response.should be_redirect
+        expect(response).to be_redirect
       end
       it "forbids creating in a different year" do
         params = params_for_create(model_name)
         params[:year] = year - 1
         params[model_name].delete :year
-        expect { post :create, params }.to_not change{ resource_class.count }
-        response.status.should == 403
+        expect { post :create, params: params }.to_not change{ resource_class.count }
+        expect(response.status).to eq(403)
       end
     end
     describe "edit" do
       it "succeeds" do
-        get :edit, year: resource.year, id: resource.id
-        response.should be_successful
+        get :edit, params: { year: resource.year, id: resource.id }
+        expect(response).to be_successful
       end
     end
     describe "delete" do
       it "succeeds" do
-        resource.should be_present # create outside expect()
+        expect(resource).to be_present # create outside expect()
         expect {
-          delete :destroy, year: resource.year, id: resource.id
+          delete :destroy, params: { year: resource.year, id: resource.id }
         }.to change{ resource_class.yr(year).count }.by(-1)
-        resource_class.all.should_not include(resource)
+        expect(resource_class.all).not_to include(resource)
 
         # not all controllers redirect to the index after delete
-        response.should be_redirect
+        expect(response).to be_redirect
       end
     end
     describe "show" do
       it "succeeds" do
-        get :show, year: resource.year, id: resource.id
-        response.should be_success
-        assigns(model_name).should == resource
+        get :show, params: { year: resource.year, id: resource.id }
+        expect(response).to be_success
+        expect(assigns(model_name)).to eq(resource)
       end
     end
     describe "update" do
       it "succeeds" do
         expect {
-          put :update, params_for_update(model_name)
+          patch :update, params: params_for_update(model_name)
           resource.reload
         }.to change { resource.send updateable_attribute }
 
         # not all controllers redirect to the index, some go to the show
-        response.should be_redirect
+        expect(response).to be_redirect
       end
     end
   end
 
   def params_for_create model_name
-    params = {:year => year, model_name => resource_attrs}
+    p = {:year => year}
 
     # Some controllers require extra params for create, eg.
     # `transaction_controller` takes an extra top-level param
@@ -145,10 +149,8 @@ shared_examples "an admin controller" do |model_name|
     # `event_id` as part of the `plan_category` hash. Recursively
     # merge the extra params using `deep_merge` gem.
     if respond_to? :extra_params_for_create
-      params = params.deep_merge extra_params_for_create
+      p = p.deep_merge extra_params_for_create
     end
-
-    params
   end
 
   def params_for_update model_name
@@ -156,5 +158,4 @@ shared_examples "an admin controller" do |model_name|
     p[model_name][updateable_attribute] = rand
     p.merge(:id => resource.id)
   end
-
 end

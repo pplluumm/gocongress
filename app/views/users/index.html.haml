@@ -20,10 +20,10 @@
   %thead
     %tr
       %th= link_to "Role", :sort => :role
-      %th Email
+      %th= link_to "Email", :sort => :email, :drn => params[:drn] == "asc" ? :desc : :asc
       %th Attendees
       %th # Attendees
-      - [:created_at, :last_sign_in_at].each do |a|
+      - [:created_at, :current_sign_in_at].each do |a|
         %th
           - drn = (params[:sort] == a.to_s && params[:drn] == "asc") ? :desc : :asc
           = link_to trl_attr("user", a), :sort => a, :drn => drn
@@ -33,11 +33,14 @@
       %tr
         %td{ :class => role_emphasis_class(user) }= user.role_name
         %td
-          .hardwrap{:style => "max-width:200px;"}= user.email
+          .hardwrap{:style => "max-width:200px;"}= link_to user.email, print_cost_summary_for_user_path(user)
         %td
           - attendees = user.attendees.sort { |a,b| a.created_at <=> b.created_at }
           - attendees.each_with_index do |atn, ix|
-            = atn.full_name
+            - a = atn.full_name
+            - a += ' (' + atn.alternate_name + ')' if atn.alternate_name.present?
+            - a += ' (Cancelled)' if atn.cancelled?
+            = link_to a, print_summary_for_attendee_path(atn)
             = "*" if ix == 0 && attendees.length > 1
             %br
         %td
@@ -45,8 +48,8 @@
           = user.attendees.length
         %td= user.created_at.to_date.to_formatted_s(:rfc822)
         %td
-          - if user.last_sign_in_at.present?
-            = user.last_sign_in_at.to_date.to_formatted_s(:rfc822)
+          - if user.current_sign_in_at.present?
+            = user.current_sign_in_at.to_date.to_formatted_s(:rfc822)
         %td= link_to 'Account', user
 
 %p

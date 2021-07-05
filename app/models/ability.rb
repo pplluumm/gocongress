@@ -5,8 +5,8 @@ class Ability
   # when the cancan syntax does not allow the symbol :all
   # For example, when applying conditions, eg. :year
   ALL_RESOURCES = [Activity, ActivityCategory, Attendee,
-    Contact, Content, ContentCategory, Event,
-    PlanCategory, Plan, Shirt, Transaction, Tournament,
+    Contact, Content, ContentCategory, Event, GameAppointment,
+    PlanCategory, Plan, Round, Shirt, SmsNotification, Transaction, Tournament,
     User, Year]
 
   def initialize(user)
@@ -32,6 +32,7 @@ class Ability
     # Admins and Staff share a few special abilities
     if user.admin? or user.role == 'S' then
       can :print_official_docs, User, :year => user.year
+      can :check_in, :attendee
       can :read, :report
       can :see_admin_menu, :layout
     end
@@ -42,15 +43,17 @@ class Ability
     if %w[S U].include?(user.role) then
       can [:show, :update], User, :id => user.id
       can :manage, Attendee, :user_id => user.id
+      cannot :list, Attendee if user.role == 'U'
     end
 
     # Guests can read public resources, but cannot write anything
     can :read, [Contact, Content, ContentCategory, Activity,
-      Shirt, Tournament, PlanCategory]
+      Shirt, Tournament, PlanCategory, Round, GameAppointment]
 
     # Guests can show (but not index) the following:
     can :show, ActivityCategory
     can :show, Plan, :disabled => false
+    can :show, Plan, :show_disabled => true
   end
 
   # `explain_denial` provides a friendly "access denied" message

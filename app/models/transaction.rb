@@ -1,10 +1,5 @@
-class Transaction < ActiveRecord::Base
+class Transaction < ApplicationRecord
   include YearlyModel
-
-  # On the form, admins enter an email, not a user_id,
-  # so user_id is not accessible.
-  attr_accessible :instrument, :trantype, :amount, :gwtranid, :gwdate,
-    :check_number, :comment
 
   # The account this transaction applies to
   belongs_to :user
@@ -16,7 +11,7 @@ class Transaction < ActiveRecord::Base
 	# Comp - Admin reduces total cost for a User (eg. a VIP)
 	# Refund - Admin has sent a refund check to a User who overpaid
 	# Sale - User makes a payment
-	TRANTYPES = [['Comp','C'], ['Refund','R'], ['Sale','S']]
+	TRANTYPES = [['Comp','C'], ['Comp (AGF)', 'A'], ['Comp (Pro)', 'P'], ['Refund','R'], ['Sale','S']]
 
 	# Instruments
 	INSTRUMENTS = [['Card','C'], ['Cash','S'], ['Check','K']]
@@ -42,20 +37,19 @@ class Transaction < ActiveRecord::Base
   with_options :if => :is_gateway_transaction? do |gwt|
     gwt.validates :gwdate, :presence => true
     gwt.validates_date :gwdate
-
-    # Now that we've switched to authorize.net, we no longer
-    # validate the uniqueness of `gwtranid`.  This is because when
-    # the account is in "test" mode, the returned transaction id is
-    # always zero. -Jared 2013-04-06
-    gwt.validates :gwtranid, \
-      :presence => true, \
-      :numericality => { :less_than => 9223372036854775807 }
+    gwt.validates :gwtranid, :presence => true
   end
 
   # gwdate and gwtranid are only allowed for gateway tranactions, eg. sales
   # unfortunately, validating the absence of something is ugly in rails
   GATEWAY_ATTR_MSG = "must be blank for non-gateway transactions"
-  with_options :unless => :is_gateway_transaction?, :allow_nil => false, :allow_blank => false, :in => [nil, ''], :message => GATEWAY_ATTR_MSG do |o|
+  with_options(
+    unless: :is_gateway_transaction?,
+    allow_nil: false,
+    allow_blank: false,
+    in: [nil, ''],
+    message: GATEWAY_ATTR_MSG
+  ) do |o|
     o.validates_inclusion_of :gwdate
     o.validates_inclusion_of :gwtranid
   end
@@ -76,26 +70,27 @@ class Transaction < ActiveRecord::Base
   # Scopes
   # ------
 
-  scope :comps, where(trantype: 'C')
-  scope :for_payment_history, where(:trantype => ['S','R'])
-  scope :refunds, where(trantype: 'R')
-  scope :sales, where(trantype: 'S')
+  scope :comps, -> { where(trantype: ['C', 'A', 'P']) }
+  scope :for_payment_history, -> { where(:trantype => ['S','R']) }
+  scope :refunds, -> { where(trantype: 'R') }
+  scope :sales, -> { where(trantype: 'S') }
 
-  def self.create_from_authnet_sim_response rsp
-    user = User.find(rsp.customer_id) # x_cust_id
+  def self.create_from_stripe_webhook data
+    user = User.find(data.metadata.user_id)
     t = new
     t.trantype = 'S' # Sale
     t.instrument = 'C' # Card
     t.user = user
     t.year = user.year
-    t.amount = (rsp.fields[:amount].to_f * 100).round # convert to cents
-    t.gwtranid = rsp.transaction_id # x_trans_id
+    t.amount = data.amount
+    t.gwtranid = data.id
+    t.receipt_url = data.receipt_url
     t.gwdate = Date.current
     t.save!
   end
 
-  def requires_instrument?() trantype != 'C' end
-  def forbids_instrument?() trantype == 'C' end
+  def requires_instrument?() %w[C A P].exclude?(trantype) end
+  def forbids_instrument?() %w[C A P].include?(trantype) end
   def is_gateway_transaction?() trantype == 'S' and instrument == 'C' end
   def requires_check_number?() instrument == 'K' end
 
@@ -129,7 +124,7 @@ class Transaction < ActiveRecord::Base
   # Only comps appear on invoices.  Refunds and sales appear on the
   # ledger (payment history)
   def to_invoice_item
-    if trantype == 'C'
+    if %w[C A P].include?(trantype)
       InvoiceItem.new(description, 'N/A', -1 * amount, 1)
     else
       raise "Non-invoiced transaction type: #{trantype}"

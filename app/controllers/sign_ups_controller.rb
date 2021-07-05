@@ -1,7 +1,8 @@
 class SignUpsController < Devise::RegistrationsController
-  before_filter :remove_year_from_params, :except => [:create]
-  before_filter :assert_year_matches_route
-  after_filter :send_welcome_email, :only => [:create]
+  before_action :remove_year_from_params, :except => [:create]
+  before_action :assert_year_matches_route
+  before_action :redirect_to_year_path
+  after_action :send_welcome_email, :only => [:create]
 
   protected
 
@@ -32,6 +33,12 @@ class SignUpsController < Devise::RegistrationsController
   end
   helper_method :events_beside_congress
 
+  def redirect_to_year_path
+    if @year.year == 2019
+      redirect_to year_path
+    end
+  end
+
   private
 
   def params_contains_user_attr(attribute)
@@ -41,8 +48,8 @@ class SignUpsController < Devise::RegistrationsController
   # If the new user was created, send a welcome email.
   def send_welcome_email
     return if params[:user][:email].blank?
-    user = User.yr(@year).find_by_email(params[:user][:email])
-    UserMailer.welcome_email(user).deliver if user.present?
+    user = User.yr(@year).where(email: params[:user][:email]).first
+    UserMailer.welcome_email(user).deliver_later if user.present?
   end
 
 end

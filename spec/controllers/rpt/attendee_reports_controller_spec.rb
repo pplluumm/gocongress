@@ -1,7 +1,7 @@
-require "spec_helper"
+require "rails_helper"
 require "controllers/rpt/shared_examples_for_reports"
 
-describe Rpt::AttendeeReportsController do
+RSpec.describe Rpt::AttendeeReportsController, :type => :controller do
   it_behaves_like "a report", %w[html csv]
 
   context "as an admin" do
@@ -13,26 +13,25 @@ describe Rpt::AttendeeReportsController do
     it "shows tshirt style name, instead of number" do
       shirt = create :shirt, :name => 'Cras vel arcu tellus, quis sodales sem'
       atnd = create :attendee, :shirt => shirt
-      get :show, :format => :csv, :year => atnd.year
-      response.should be_success
+      get :show, format: 'csv', params: { year: atnd.year }
+      expect(response).to be_success
       ary = CSV.parse response.body
-      ary.should have(2).rows
-      ary[0].should_not include 'shirt_id'
-      ary[0].should include 'shirt_style'
+      expect(ary.size).to eq(2)
+      expect(ary[0]).not_to include 'shirt_id'
+      expect(ary[0]).to include 'shirt_style'
       ix = ary[0].index 'shirt_style'
-      ary[1][ix].should == shirt.name
+      expect(ary[1][ix]).to eq(shirt.name)
     end
 
     it "includes a column for each plan" do
       p1 = create :plan, :name => 'herp', :year => admin.year
       p2 = create :plan, :name => 'derp', :year => admin.year
-      get :show, :format => :csv, :year => admin.year
+      get :show, format: 'csv', params: { year: admin.year }
       ary = CSV.parse response.body
-      ary.should have(1).row # the header
+      expect(ary.size).to eq(1) # the header
       [p1, p2].each do |p|
-        ary.first.should include "Plan: #{p.name}"
+        expect(ary.first).to include "Plan: #{p.name}"
       end
     end
   end
-
 end

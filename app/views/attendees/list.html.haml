@@ -1,0 +1,42 @@
+%h2 All Attendees
+
+.pagination-controls= paginate @attendees
+
+= form_tag(atn_reg_sheets_reports_path, :method => :get) do
+  %table.semantic.fullwidth.zebra
+    %thead
+      %tr
+        %th
+        %th= link_to "Attendee", :drn => (%w[alternate_name user_email].include?(params[:sort]) || params[:drn] == "desc") ? :asc : :desc
+        %th= link_to "Alternate Name", :sort => :alternate_name, :drn => (params[:sort] == "alternate_name" && params[:drn] == "asc") ? :desc : :asc
+        %th= link_to "User Email Address", :sort => :user_email, :drn => (params[:sort] == "user_email" && params[:drn] == "asc") ? :desc : :asc
+        %th{:colspan => "2"}
+      %tbody
+        - @attendees.each do |attendee|
+          %tr
+            %td.valign-middle.align-center= check_box_tag 'attendee_ids[]', attendee.id
+            - if attendee.cancelled?
+              %td= link_to "#{attendee.family_name}, #{attendee.given_name} (Cancelled)", print_summary_for_attendee_path(attendee)
+            - else
+              %td= link_to "#{attendee.family_name}, #{attendee.given_name}", print_summary_for_attendee_path(attendee)
+            %td= attendee.alternate_name
+            %td= link_to attendee.user.email, print_cost_summary_for_user_path(attendee.user)
+            %td= link_to 'Account', attendee.user
+  %br
+  = button_tag('Set All', type: 'button', name: 'setAll_attendee_ids[]')
+  = button_tag('Clear', type: 'button', name: 'clear_attendee_ids[]')
+  = submit_tag "Print Attendee Registration Sheets"
+  .pagination-controls= paginate @attendees
+
+:javascript
+  $("[name='setAll_attendee_ids[]']").click(function() {
+    $("[name='attendee_ids[]']").each(function() {
+      this.checked = true;
+    });
+  });
+
+  $("[name='clear_attendee_ids[]']").click(function() {
+    $("[name='attendee_ids[]']").each(function() {
+      this.checked = false;
+    });
+  });

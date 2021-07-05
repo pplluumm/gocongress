@@ -1,4 +1,4 @@
-%h2 Register for the #{@year.year} US Go Congress!
+%h2 Register for the #{@year.year} U.S. Go Congress!
 
 - if @year.registration_phase == "closed"
   %p
@@ -11,6 +11,10 @@
     Registration for the #{@year.year} Go Congress is complete.
     Thanks for coming!
 
+- elseif @year.registration_phase == "canceled"
+  %p
+    The #{@year.year} Go Congress has been canceled.
+
 - else
   .vertical-form-instructions
 
@@ -20,7 +24,7 @@
       %p
         %strong= event_list
         %br
-        In addition to the US Go Congress, you may also register
+        In addition to the U.S. Go Congress, you may also register
         for the #{event_list}.
 
     %p
@@ -35,7 +39,7 @@
       In that case, please
       = link_to "sign in.", new_user_session_path
 
-  = form_for(resource, :as => resource_name, :url => registration_path(resource_name)) do |f|
+  = form_for(resource, :as => resource_name, :url => user_registration_path) do |f|
 
     -# For new registrations, we need to set the user's year before
     -# validation, but because we are using Devise

@@ -12,12 +12,8 @@ Gocongress::Application.configure do
   # Asset sync
   config.action_controller.asset_host = "//#{ENV['FOG_DIRECTORY']}.s3.amazonaws.com"
 
-  # Mass assignment protection for Active Record models
-  # See ActiveModel::MassAssignmentSecurity::ClassMethods
-  config.active_record.mass_assignment_sanitizer = :logger
-
   # Disable Rails's static asset server
-  config.serve_static_assets = false
+  config.serve_static_files = false
 
   # Compress JavaScripts and CSS.
   config.assets.compress = true
@@ -33,12 +29,13 @@ Gocongress::Application.configure do
 
   # Enable locale fallbacks for I18n (makes lookups for any locale fall back to
   # the I18n.default_locale when a translation cannot be found)
-  config.i18n.fallbacks = true
+  config.i18n.fallbacks = [I18n.default_locale]
 
   # Send deprecation notices to registered listeners
   config.active_support.deprecation = :notify
 
+  config.force_ssl = true
+
   # Runtime exception notification
   GocongressNotifier.use_exception_notifier_middleware(config)
-
 end

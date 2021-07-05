@@ -12,9 +12,11 @@
   %tr
     %th= trl_attr 'tournament', 'openness'
     %td= @tournament.get_openness_type_name
-
+  - @tournament.rounds.each do |round|
+    %tr
+      %td= link_to("Round #{round.number}", round )
 %br
-= Markdown.new( @tournament.description ).to_html.html_safe
+= markdown(@tournament.description).html_safe
 %br
 
 - if can? :update, @tournament

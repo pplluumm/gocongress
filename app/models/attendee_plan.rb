@@ -1,17 +1,12 @@
 require 'action_view/helpers/translation_helper'
 
-class AttendeePlan < ActiveRecord::Base
+class AttendeePlan < ApplicationRecord
   include YearlyModel
   extend ActionView::Helpers::TranslationHelper
 
   belongs_to :attendee
   belongs_to :plan
   has_many :dates, :class_name => 'AttendeePlanDate'
-
-  # As with other attendee linking tables, mass-assignment security
-  # is not necessary yet, but may be in the future.  See the more
-  # detailed discussion in `attendee_activity.rb` -Jared 2012-07-15
-  attr_accessible :attendee_id, :plan_id, :quantity
 
   # Validations
   # -----------
@@ -30,6 +25,8 @@ class AttendeePlan < ActiveRecord::Base
   validates_each :quantity do |model, atr, value|
     model.validate_against_max_quantity
     model.validate_against_available_inventory
+    model.validate_against_min_age
+    model.validate_against_max_age
   end
 
   before_validation do |ap|
@@ -44,8 +41,24 @@ class AttendeePlan < ActiveRecord::Base
   # Public instance methods
   # -----------------------
 
+  def invoice_plan_dates
+    s = ' ('
+    plan_dates.each do |d|
+      unless d == plan_dates.last
+        s += d + ', '
+      else
+        s += d
+      end
+    end
+    s += ')'
+  end
+
   def invoiced_quantity
     plan.daily? ? dates.length : quantity
+  end
+
+  def plan_dates
+    dates.map {|d| d._date.strftime("%-m/%-d") }
   end
 
   def show_on_invoice?
@@ -54,8 +67,12 @@ class AttendeePlan < ActiveRecord::Base
 
   # Optimization: Avoid a query by passing
   # `attendee_full_name` as an argument
-  def to_invoice_item attendee_full_name
-    InvoiceItem.new(plan.name, attendee_full_name, plan.price, invoiced_quantity)
+  def to_invoice_item attendee_full_name, attendee_alternate_name
+    if plan.daily?
+      InvoiceItem.new(plan.name + invoice_plan_dates, attendee_full_name + attendee_alternate_name, plan.price, invoiced_quantity)
+    else
+      InvoiceItem.new(plan.name, attendee_full_name + attendee_alternate_name, plan.price, invoiced_quantity)
+    end
   end
 
   def to_plan_selection
@@ -75,6 +92,23 @@ class AttendeePlan < ActiveRecord::Base
     max_qty = plan.max_quantity
     if quantity > max_qty then
       errors[:base] << "The maximum quantity of #{plan.name.pluralize.downcase} per attendee is #{max_qty}"
+    end
+  end
+
+  # Attendee age must be appropriate
+  def validate_against_min_age
+    age = attendee.age_in_years
+    min = plan.age_min
+    if age < min
+      errors[:base] << "#{plan.name.pluralize}: Attendee age will be #{age} which is less than minimum age for this plan."
+    end
+  end
+
+  def validate_against_max_age
+    age = attendee.age_in_years
+    max = plan.age_max
+    if max.present? && age > max
+      errors[:base] << "#{plan.name.pluralize}: Attendee age will be #{age} which is greater than maximum age for this plan."
     end
   end
 

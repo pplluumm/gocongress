@@ -1,7 +1,7 @@
-require "spec_helper"
+require "rails_helper"
 
-describe Year do
+RSpec.describe Year, :type => :model do
   it 'has a valid factory' do
-    build(:year).should be_valid
+    expect(build(:year)).to be_valid
   end
 end

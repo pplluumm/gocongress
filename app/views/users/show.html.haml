@@ -4,8 +4,7 @@
     %tbody
       %tr
         %th Email
-        %td
-          .hardwrap{:style => "max-width:250px;"}= @user.email
+        %td.hardwrap= @user.email
         %td.smalltext= link_to 'Edit', edit_email_for_user_path(@user)
       %tr
         %th Password
@@ -21,28 +20,54 @@
 .right-column
   %h2 Balance
   = render :partial => 'shared/balance', :locals => {:user => @user, :show_detail_links => true}
-  %p= button_to "Make a Payment", pay_user_path(@user), :method => "get"
+
+  - if @year.registration_phase != "canceled" || @user.admin?
+    %p= button_to "Make a Payment", pay_user_path(@user), :method => "get"
 
 %h2 Attendees
 - if @user.attendees.empty?
   %p No attendees yet.
 - else
-  %table.lightweight.lightly-spaced-rows
+  %p If you need to edit the registration form of an attendee, please select the name.
+  %table.lightweight.lightly-spaced-rows.buffer-bottom
     %thead
       %tr
         %th Name
+        %th Alternate Name
         %th Rank
         %th.numeric Age*
         %th Registered
     %tbody
       - for a in @attendees
         %tr
-          %td= link_to a.full_name, edit_attendee_path(a)
+          - if a.cancelled?
+            %td= a.full_name + ' (Cancelled)'
+          - else
+            - if a.age_in_years >= 18
+              %td= link_to a.full_name, edit_registration_path(a, type: 'adult')
+            - else
+              %td= link_to a.full_name, edit_registration_path(a, type: 'youth')
+          %td= a.alternate_name if a.alternate_name.present?
           %td= a.rank_name
           %td.numeric= a.age_in_years.floor
           %td= a.created_at.strftime("%b %-d %l:%M %p")
+          - if a.cancelled?
+            %td= button_to "Uncancel", { action: "restore_attendee", id: @user.id, attendee_id: a.id }, method: :patch, data: { confirm: "Are you sure?" }
+          - else
+            %td= button_to "Cancel", { action: "cancel_attendee", id: @user.id, attendee_id: a.id }, method: :patch, data: { confirm: "Plan selections will be removed.  Are you sure?" }
 
-%p= button_to_get 'Add Attendee', new_attendee_path(user_id: @user.id), 'add_attendee_btn'
+= button_to_get 'Add Adult Attendee (18 years and up)', new_registration_path(user_id: @user.id, type: 'adult'), 'add_adult_attendee_btn'
+= button_to_get 'Add Youth Attendee (under 18 years old)', new_registration_path(user_id: @user.id, type: 'youth'), 'add_youth_attendee_btn'
+
+%br
+%br
+
+%h3 Regarding Large Groups
+
+%p
+  We can help you with registration if you are organizing a large group.
+  Please contact the
+  = link_to('Registrar', contacts_path) + '.'
 
 -if @has_minor_attendee
   %h3 Regarding Minors

@@ -1,7 +1,6 @@
-class Event < ActiveRecord::Base
+class Event < ApplicationRecord
   include YearlyModel
   has_many :plan_categories
-  attr_accessible :name
   validates :name, :presence => true
-  scope :alphabetical, order(:name)
+  scope :alphabetical, -> { order(:name) }
 end

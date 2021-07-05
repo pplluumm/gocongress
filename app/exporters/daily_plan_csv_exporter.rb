@@ -1,12 +1,12 @@
 class DailyPlanCsvExporter < Exporter
   def initialize(year)
     @year = year
-    @plan_names = Plan.yr(@year).daily.order(:name).all.map(&:name)
+    @plan_names = Plan.yr(@year).daily.order(:name).to_a.map(&:name)
     super()
   end
 
   def header
-    ["Family Name", "Given Name"] + @plan_names
+    ["user_id", "attendee_id", "Family Name", "Given Name", "Alternate Name"] + @plan_names
   end
 
   def render
@@ -24,8 +24,11 @@ class DailyPlanCsvExporter < Exporter
     xtab = []
     pg_result.group_by { |row| row["attendee_id"] }.each do |attendee_id, tuples|
       xtab_row = Array.new(header.length, nil)
-      xtab_row[0] = tuples[0]["family_name"]
-      xtab_row[1] = tuples[0]["given_name"]
+      xtab_row[0] = tuples[0]["user_id"]
+      xtab_row[1] = tuples[0]["attendee_id"]
+      xtab_row[2] = tuples[0]["family_name"]
+      xtab_row[3] = tuples[0]["given_name"]
+      xtab_row[4] = tuples[0]["alternate_name"]
       tuples.each do |t|
         xtab_col = plan_col_num_in_xtab(t["plan_name"])
         xtab_row[xtab_col] = format_date_range(t["first_date"]..t["last_date"])

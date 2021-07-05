@@ -20,7 +20,7 @@ class ActivitiesController < ApplicationController
   end
 
   def update
-    if @activity.update_attributes(params[:activity])
+    if @activity.update_attributes!(activity_params)
       redirect_to @activity, :notice => "#{Activity.model_name.human} updated"
     else
       render :action => "edit"
@@ -34,8 +34,15 @@ class ActivitiesController < ApplicationController
 
   # Helpers
   def activity_category_options
-    ActivityCategory.yr(@year).all.map {|c| [ c.name, c.id ] }
+    ActivityCategory.yr(@year).to_a.map {|c| [ c.name, c.id ] }
   end
   helper_method :activity_category_options
 
+  private
+
+  def activity_params
+    params.require(:activity).permit(:activity_category_id, :disabled,
+      :leave_time, :name, :notes, :phone, :price, :price_varies, :return_time,
+      :location, :url)
+  end
 end

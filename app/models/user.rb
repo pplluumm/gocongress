@@ -1,12 +1,16 @@
 require "invoice_item"
 
-class User < ActiveRecord::Base
+class User < ApplicationRecord
   include YearlyModel
 
   # Constants
   # ---------
 
-  ROLES = [['Admin','A'], ['Staff','S'], ['User','U']]
+  ROLES = [
+    ['Admin','A'],
+    ['Staff','S'],
+    ['User','U']
+  ]
 
   # In practice, we often load users based on the compound key (email,year).
   # For example, when authenticating or resetting a password.
@@ -39,19 +43,12 @@ class User < ActiveRecord::Base
     :confirmation => true,
     :if => :validate_password?
 
-  # Mass-Assignment
-  # ---------------
-  #
-  # Year is accessible, but we subclass RegistrationsController
-  # to provide mass-assignment security
-
-  attr_accessible :email, :password, :password_confirmation,
-    :remember_me, :year
-
   # Scopes
   # ------
 
-  scope :attendeeless, where("(select count(*) from attendees a where a.user_id = users.id) = 0")
+  scope :attendeeless, -> {
+    where("(select count(*) from attendees a where a.user_id = users.id) = 0")
+  }
 
   def self.email_range min, max
     where('lower(substr(email, 1, 1)) between ? and ?', min, max)
@@ -71,7 +68,7 @@ class User < ActiveRecord::Base
   end
 
   def attendee_invoice_items
-    attendees.map {|a| a.invoice_items}.flatten
+    attendees.includes(:plans, :activities).order('created_at').map {|a| a.invoice_items}.flatten
   end
 
   def balance
@@ -88,6 +85,14 @@ class User < ActiveRecord::Base
 
   def invoice_items
     attendee_invoice_items + comp_invoice_items
+  end
+
+  def paid_deposit
+    if amount_paid >= 7000
+      'Paid'
+    else
+      'Not paid'
+    end
   end
 
   def get_invoice_total
@@ -110,7 +115,7 @@ class User < ActiveRecord::Base
       params.delete(:password)
       params.delete(:password_confirmation) if params[:password_confirmation].blank?
     end
-    update_attributes(params)
+    update_attributes!(params)
   end
 
 private

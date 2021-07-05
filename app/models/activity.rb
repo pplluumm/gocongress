@@ -1,10 +1,6 @@
-class Activity < ActiveRecord::Base
+class Activity < ApplicationRecord
   include YearlyModel
   include Purchasable
-
-  attr_accessible :activity_category_id, :disabled,
-    :leave_time, :name, :notes, :phone, :price, :price_varies,
-    :return_time, :location, :url
 
   belongs_to :activity_category
   has_many :attendee_activities, :dependent => :destroy
@@ -27,11 +23,11 @@ class Activity < ActiveRecord::Base
   }
   validates :url, :length => {:maximum => 200},
     :format => {
-      :with => /^https?:\/{2}/,
+      :with => /\Ahttps?:\/{2}/,
       :allow_blank => true,
       :message => "must begin with protocol, eg. http://"}
 
-  scope :disabled, where(disabled: true)
+  scope :disabled, -> { where(disabled: true) }
 
   def to_invoice_item attendee_full_name
     InvoiceItem.new(name, attendee_full_name, price, 1)

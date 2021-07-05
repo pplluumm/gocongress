@@ -10,10 +10,6 @@ class Exporter
     CSV.generate { |csv| m.each { |row| csv << row } }
   end
 
-  def obfuscation_factor
-    Kernel.rand((1..10)).to_i
-  end
-
   def db
     @conn
   end

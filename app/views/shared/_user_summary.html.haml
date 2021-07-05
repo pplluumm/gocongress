@@ -1,18 +1,21 @@
 .registration-sheet
 
-  .logo= image_tag "logo/usgc/144px/#{@year.year}.png"
-  %h1 Cost Summary
+  - f = "logo/usgc/144px/#{@year.year}.png"
+  .logo= image_tag f if image_file?(f)
+  %h2= "User Email: #{user.email}"
+  %p= "Number of Attendees: #{user.attendees.count}"
+  - if user.attendees.empty?
+    %p No attendees yet.
+  - else
+    - user.attendees.order(:family_name, :given_name).each_with_index do |a,i|
+      = "#{i + 1}."
+      - if a.cancelled?
+        = "#{a.family_name}, #{a.given_name}#{a.attendee_alternate_name} (Cancelled)"
+      - else
+        = "#{a.family_name}, #{a.given_name}#{a.attendee_alternate_name}"
+      %br
 
-  %table
-    %tr
-      %th User Email
-      %td= user.email
-
-  = render :partial => 'shared/balance', :locals => {:user => user, :show_detail_links => false}
-
-  %br.clear
-  %br
-
+  %h2 Cost Summary
   %table.fullwidth
     %thead
       %th Attendee
@@ -24,7 +27,7 @@
       - user.invoice_items.each do |i|
         %tr
           %td= truncate(strip_tags(i.attendee_full_name), :length => 30)
-          %td= truncate(strip_tags(i.description), :length => 45)
+          %td= strip_tags(i.description)
           %td.numeric= cents_to_currency i.price
           %td.numeric= i.qty
           %td.numeric= cents_to_currency( i.price * i.qty )
@@ -33,3 +36,6 @@
         %td.numeric= cents_to_currency user.get_invoice_total
 
   = render :partial => 'shared/ledger', :locals => {:user => user}
+
+  %h2 Balance
+  = render :partial => 'shared/balance', :locals => {:user => user, :show_detail_links => false}

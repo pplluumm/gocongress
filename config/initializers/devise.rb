@@ -2,6 +2,8 @@
 # four configuration values can also be set straight in your models.
 Devise.setup do |config|
 
+  config.secret_key = ENV.fetch('DEVISE_SECRET_KEY')
+
   # ==> Mailer Configuration
   # Configure the e-mail address which will be shown in DeviseMailer.
   config.mailer_sender = "usgcwebsite@gmail.com"
@@ -82,7 +84,8 @@ Devise.setup do |config|
   config.stretches = Rails.env.test? ? 1 : 10
 
   # Setup a pepper to generate the encrypted password.
-  config.pepper = "246a68b841da6ca1764df592e3b74d525b8104ea2618e0948163d6a89512abe4851fa88e904bc44beb5a17d67cbf620fc689f333f10bd3841383d23c905770c3"
+  config.pepper = "246a68b841da6ca1764df592e3b74d525b8104ea2618e0948163d6a8" \
+    "9512abe4851fa88e904bc44beb5a17d67cbf620fc689f333f10bd3841383d23c905770c3"
 
   # ==> Configuration for :rememberable
   # The time the user will be remembered without asking for credentials again.

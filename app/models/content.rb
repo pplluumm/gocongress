@@ -1,9 +1,6 @@
-class Content < ActiveRecord::Base
+class Content < ApplicationRecord
   include YearlyModel
   belongs_to :content_category
-
-  attr_accessible :body, :content_category_id, :expires_at,
-    :show_on_homepage, :subject
 
   validates_presence_of :subject, :body
   validates_length_of :subject, :maximum => 100
@@ -13,8 +10,8 @@ class Content < ActiveRecord::Base
   # Scopes
   # -----
 
-  scope :homepage, where(show_on_homepage: true)
-  scope :newest_first, order("created_at desc")
+  scope :homepage, -> { where(show_on_homepage: true) }
+  scope :newest_first, -> { order("created_at desc") }
   scope :unexpired, lambda {
     where("expires_at is null or expires_at > ?", Time.zone.now )
   }

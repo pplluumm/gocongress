@@ -1,9 +1,7 @@
-class Shirt < ActiveRecord::Base
+class Shirt < ApplicationRecord
   include YearlyModel
 
-  has_many :attendees, dependent: :restrict
-
-  attr_accessible :description, :disabled, :hex_triplet, :image_url, :name
+  has_many :attendees, dependent: :restrict_with_exception
 
   SIZES = [
     ["None",            "NO"],

@@ -1,0 +1,7 @@
+%noscript
+  .noscript-warning
+    %h3 GoCongress.org works best with Javascript enabled
+
+#header-container
+  #header{:class => ("home" if controller_name == "home" and action_name == "index")}
+    = image_tag "logo/usgc/#{@logo_file}", :class => 'header-logo'

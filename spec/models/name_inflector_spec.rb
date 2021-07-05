@@ -1,33 +1,43 @@
-require "spec_helper"
+require "rails_helper"
 
-describe NameInflector do
+RSpec.describe NameInflector, :type => :model do
   describe "capitalize" do
     subject { NameInflector }
 
     it "handles all caps" do
-      subject.capitalize("DUDE").should == "Dude"
+      expect(subject.capitalize("DUDE")).to eq("Dude")
     end
 
     it "handles all lower case" do
-      subject.capitalize("dude").should == "Dude"
+      expect(subject.capitalize("dude")).to eq("Dude")
     end
 
     it "capitalizes all parts of a hyphenated name" do
-      subject.capitalize("harnett-hARgRoVE").should == "Harnett-Hargrove"
+      expect(subject.capitalize("harnett-hARgRoVE")).to eq("Harnett-Hargrove")
     end
 
     it "preserves the capitalization of certain English prepositions" do
-      subject.capitalize("MacIntyre").should == "MacIntyre"
-      subject.capitalize("Macintyre").should == "Macintyre"
-      subject.capitalize("macintyre").should == "Macintyre"
-      subject.capitalize("McIntyre").should == "McIntyre"
+      expect(subject.capitalize("MacIntyre")).to eq("MacIntyre")
+      expect(subject.capitalize("Macintyre")).to eq("Macintyre")
+      expect(subject.capitalize("macintyre")).to eq("Macintyre")
+      expect(subject.capitalize("McIntyre")).to eq("McIntyre")
     end
 
     it "always capitalizes certain other English prepositions" do
-      subject.capitalize("O'BRIAN").should == "O'Brian"
-      subject.capitalize("o'brian").should == "O'Brian"
+      expect(subject.capitalize("O'BRIAN")).to eq("O'Brian")
+      expect(subject.capitalize("o'brian")).to eq("O'Brian")
     end
 
+    it 'properly capitalizes suffixes Sr., Jr., and Esq.' do
+      expect(subject.capitalize("o'brian sr.")).to eq("O'Brian Sr.")
+      expect(subject.capitalize("o'brian jr.")).to eq("O'Brian Jr.")
+      expect(subject.capitalize("o'brian esq.")).to eq("O'Brian Esq.")
+      expect(subject.capitalize("harnett-hARgRoVE jr.")).to eq("Harnett-Hargrove Jr.")
+      expect(subject.capitalize("eagle, jr.")).to eq("Eagle, Jr.")
+      expect(subject.capitalize("EAGLE, JR.")).to eq("Eagle, Jr.")
+      expect(subject.capitalize("eagle, sr.")).to eq("Eagle, Sr.")
+      expect(subject.capitalize("eagle, Sr.")).to eq("Eagle, Sr.")
+    end
     # In the future, we could implement proper capitalization of
     # other, less common international names.
     #

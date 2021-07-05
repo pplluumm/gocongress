@@ -1,6 +1,6 @@
-require 'spec_helper'
+require "rails_helper"
 
-describe Devise::PasswordsController do
+RSpec.describe Devise::PasswordsController, :type => :controller do
   let(:year) { Time.zone.now.year }
 
   # Every time you want to unit test a devise controller, you need
@@ -11,15 +11,15 @@ describe Devise::PasswordsController do
 
   describe '#new' do
     it "succeeds" do
-      get :new, year: year
-      response.should be_success
+      get :new, params: { year: year }
+      expect(response).to be_success
     end
   end
 
   describe '#create' do
     it "succeeds" do
-      post :create, year: year, user: {email: 'lalalalala'}
-      response.should be_success
+      post :create, params: { year: year, user: { email: 'lalalalala' } }
+      expect(response).to be_success
     end
   end
 end

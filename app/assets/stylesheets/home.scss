@@ -1,0 +1,189 @@
+.homepage {
+  .logo-welcome-container {
+    overflow: hidden;
+    margin-bottom: $spacing-unit;
+  }
+
+  .homepage-secondary {
+    background: transparentize($main-bg-color, 0.8);
+    margin: {
+      right: $spacing-unit * -1;
+      left: $spacing-unit * -1;
+    }
+    padding: $spacing-unit;
+
+    .addresses {
+      margin-bottom: 1em;
+    }
+  }
+
+  .content {
+    /* homepage overrides default padding so that the gallery will
+    float snugly in the top right */
+    // padding: $spacing-unit;
+    // width: 900px;
+    p,
+    h2,
+    h3,
+    h4,
+    h5 {
+      padding: 0.5em 0;
+    }
+
+    .egc-logo {
+      img {
+        width: 300px;
+      }
+    }
+
+    .usgc-logo {
+      float: left;
+      margin-bottom: $spacing-unit;
+      margin-right: $spacing-unit;
+
+      img {
+        width: 300px;
+      }
+
+      @include breakpoint(lt-sm) {
+        float: none;
+        margin: 0;
+        text-align: center;
+
+        img {
+          width: 75%;
+        }
+      }
+    }
+
+    /* Curving the text around the logo */
+    .curvy-text-container {
+      padding-top: 10px;
+      padding-left: 150px;
+      position: relative;
+    }
+    .curvy-text-container #usgc-logo {
+      &.circular-logo {
+        position: absolute;
+        left: $spacing-unit / 2 * -1;
+        top: $spacing-unit / 2 * -1;
+        width: 300px;
+      }
+      &.rectangular-logo {
+        float: left;
+        left: auto;
+        padding: 8px 21px;
+        position: static;
+        top: auto;
+        width: auto;
+      }
+    }
+    .curvy-text-container .curvy-spacer {
+      clear: left;
+      float: left;
+      height: 19px;
+    }
+    .curvy-text-container p {
+      padding: 0.5em;
+      text-align: justify;
+    }
+  }
+}
+
+#donate {
+  float: right;
+}
+
+#donate-logo {
+  float: left;
+
+  img {
+    width: 48px;
+  }
+}
+
+/* Slideshow */
+#gallery-column {
+  clear: right;
+  float: right;
+  // margin-top: $spacing-unit * -1;
+  // margin-right: $spacing-unit * -1;
+  border-radius: 15px;
+  margin-bottom: $spacing-unit;
+  margin-left: $spacing-unit;
+  // margin-bottom: $spacing-unit;
+  margin-top: $spacing-unit * 2 * -1;
+  overflow: hidden;
+  position: relative;
+  z-index: 1; // everything else will be on 0
+
+  @include breakpoint(lt-sm) {
+    display: inline-block;
+    float: none;
+    margin: {
+      top: 0;
+      right: auto;
+      left: auto;
+    }
+    max-width: 100%;
+  }
+
+  #below-gallery {
+    padding: 0px;
+    text-align: right;
+    #venue-address {
+      padding: 7px 7px 0px 0px;
+    }
+  }
+}
+#gallery {
+  width: 480px;
+  height: 360px;
+}
+
+/* Begin overriding styles for some of galleria's internal elements.
+We must use !important here because otherwise they are ignored in
+IE. This may be due to how IE applies styles when a <link> element
+referencing the galleria theme is added at runtime by JS, but I am
+not certain. -Jared 2012-05-31 */
+.galleria-stage {
+  bottom: 0px !important;
+  left: 0px !important;
+  right: 0px !important;
+  top: 0px !important;
+}
+
+/* Slideshow captions */
+.galleria-info {
+  bottom: 0px !important;
+  left: 0px !important;
+  position: absolute !important;
+  right: auto !important;
+  top: auto !important;
+  width: 100% !important;
+}
+
+.galleria-counter {
+  top: 0;
+  right: 0;
+  bottom: auto;
+  left: auto;
+  background: black;
+  padding: 10px;
+  border-bottom-left-radius: 5px;
+}
+
+.galleria-info-text {
+  background-color: rgba(0, 0, 0, 0.5) !important;
+  display: block !important;
+}
+.galleria-info-title,
+.galleria-info-description {
+  display: inline !important;
+}
+.galleria-info-description {
+  padding-left: 2em !important;
+}
+.galleria-info-link {
+  display: none !important;
+}

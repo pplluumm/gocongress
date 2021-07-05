@@ -1,9 +1,9 @@
-require "spec_helper"
+require "rails_helper"
 
-describe Tournament do
+RSpec.describe Tournament, :type => :model do
   it_behaves_like "a yearly model"
 
   it "has valid factory" do
-    build(:tournament).should be_valid
+    expect(build(:tournament)).to be_valid
   end
 end

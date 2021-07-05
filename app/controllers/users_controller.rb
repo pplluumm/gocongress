@@ -3,10 +3,18 @@ class UsersController < ApplicationController
 
   # Callbacks, in order
   add_filter_restricting_resources_to_year_in_route
-  before_filter :deny_users_from_wrong_year, :only => [:index]
-  before_filter :remove_year_from_params
+  before_action :deny_users_from_wrong_year, :only => [:index]
+  before_action :remove_year_from_params
   load_resource
   authorize_resource :only => [:index, :show, :update]
+
+  def cancel_attendee
+    authorize! :update, @user
+    @attendee = Attendee.find(params[:attendee_id])
+    @attendee.update(cancelled: true)
+    @attendee.attendee_plans.destroy_all
+    redirect_to(@user, :notice => 'Cancelled attendee.')
+  end
 
   def edit_email
     authorize! :update, @user
@@ -21,11 +29,21 @@ class UsersController < ApplicationController
     authorize! :new, @user
   end
 
+  def restore_attendee
+    authorize! :update, @user
+    @attendee = Attendee.find(params[:attendee_id])
+    if @attendee.age_in_years >= 18
+      redirect_to edit_registration_path(@attendee, type: 'adult'), :notice => 'Please submit this form to restore this attendee.'
+    else
+      redirect_to edit_registration_path(@attendee, type: 'youth'), :notice => 'Please submit this form to restore this attendee.'
+    end
+  end
+
   def create
     @user.year = @year.year
     authorize! :create, @user
     if @user.save
-      UserMailer.welcome_email(@user).deliver
+      UserMailer.welcome_email(@user).deliver_later
       redirect_to users_path, :notice => 'User created'
     else
       render :new
@@ -33,7 +51,7 @@ class UsersController < ApplicationController
   end
 
   def index
-    if %w[created_at last_sign_in_at].include? params[:sort]
+    if %w[email created_at current_sign_in_at].include? params[:sort]
       drn = (params[:drn] == "asc") ? :asc : :desc
       sort_order = "#{params[:sort]} #{drn}"
     else
@@ -45,12 +63,12 @@ class UsersController < ApplicationController
   def show
     @attendees = @user.attendees.order(:created_at)
     @has_minor_attendee = @attendees.map(&:minor?).include?(true)
-    @start_date = CONGRESS_START_DATE[@year.year].to_formatted_s(:long)
+    @start_date = CONGRESS_START_DATE[@year.year].to_formatted_s(:long_ordinal)
   end
 
   def pay
     authorize! :update, @user
-    @form_action = new_payment_url(new_payment_url_options)
+    @form_action = new_payment_url()
   end
 
   def invoice
@@ -78,18 +96,14 @@ class UsersController < ApplicationController
       @user.save
     end
 
-    # Now that we have handled the protected attributes, remove them
-    # from the params hash to avoid a warning. -Jared 2011.1.30
-    mass_assignable_attrs = params[:user].except(:role)
-
     # Update mass-assignable attributes. update_with_password() performs
     # some extra validation before calling update_attributes
-    if @user.update_with_password(mass_assignable_attrs)
+    if @user.update_with_password(user_params)
 
       # When changing our own password, refresh session credentials
       # or else we will get logged out!
       # Credit: Bill Eisenhauer
-      sign_in(@user, :bypass => true) if (current_user.id == @user.id)
+      bypass_sign_in(@user) if (current_user.id == @user.id)
 
       redirect_to user_path(@user), :notice => "User updated"
     else
@@ -129,4 +143,8 @@ private
     params.key?(:user) && params[:user].key?(attribute)
   end
 
+  def user_params
+    params.require(:user).except(:role).permit(:email, :password, :password_confirmation,
+      :remember_me, :year)
+  end
 end

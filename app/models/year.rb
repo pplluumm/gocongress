@@ -1,33 +1,37 @@
-class Year < ActiveRecord::Base
+class Year < ApplicationRecord
+  after_initialize :init
 
-  REG_PHASES = %w[closed open complete]
+  enum event_type: [:'in-person', :online]
 
-  # Mass Assignment Security
-  # ------------------------
-
-  attr_accessible :city, :date_range, :day_off_date,
-    :ordinal_number, :registration_phase, :reply_to_email,
-    :start_date, :state, :timezone, :twitter_url, :venue_name,
-    :venue_address, :venue_city, :venue_state, :venue_zip,
-    :venue_url, :venue_phone
+  REG_PHASES = %w[closed open complete canceled]
 
   # Validations
   # -----------
 
   with_options({:presence => true}) do |wo|
-    wo.validates :city
+    wo.validates :event_type
+    wo.validates :city, unless: :is_online?
     wo.validates :date_range
     wo.validates :day_off_date
     wo.validates :ordinal_number, :numericality => { :only_integer => true, :minimum => 27 }
-    wo.validates :registration_phase, :inclusion => { :in => %w(closed open complete) }
+    wo.validates :registration_phase, :inclusion => { :in => %w(closed open complete canceled) }
     wo.validates :reply_to_email
     wo.validates :start_date
-    wo.validates :state
+    wo.validates :state, unless: :is_online?
     wo.validates :timezone
     wo.validates :year, :numericality => { :only_integer => true, :minimum => 2011, :maximum => 2100 }
   end
 
-  validates :twitter_url, :format => { :allow_blank => true, :with => /^https:\/{2}twitter.com/ }
+  validates :twitter_url, :format => { :allow_blank => true, :with => /\Ahttps:\/{2}twitter.com/ }
+
+  def init
+    # Set default values
+    self.event_type ||=:'in-person'
+  end
+
+  def is_online?
+    event_type == :online.to_s
+  end
 
   def circular_logo?
     year != 2013 # they have a rectangular logo
@@ -53,6 +57,8 @@ class Year < ActiveRecord::Base
 
   def sponsors
     s = sponsors_by_year[self.year]
+    s = [:aga] if s.nil?
+
     all_sponsors.reject{|k,v| !s.include?(k)}
   end
 
@@ -82,7 +88,7 @@ private
     {
       2011 => [:aga, :kaba, :kgs],
       2012 => [:aga, :agf, :confucius, :jpga, :kaba, :pandanet, :slate_and_shell, :tygem],
-      2013 => []
+      2020 => [:aga, :agf]
     }
   end
 

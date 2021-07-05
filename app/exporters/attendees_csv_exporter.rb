@@ -3,8 +3,11 @@ class AttendeesCsvExporter
   # Order of columns must match `header_array`
   def self.attendee_array atnd
     [
+      atnd.user_id,
       atnd.user_email,
+      atnd.id,
       AttendeeAttributes.values(atnd),
+      atnd.user_paid_deposit,
       atnd.guardian_name,
       atnd.shirt_name,
       plan_quantities(atnd)
@@ -13,7 +16,7 @@ class AttendeesCsvExporter
 
   # Order must match `attendee_array`
   def self.header_array year
-    ['user_email'] + AttendeeAttributes.names + ['guardian', 'shirt_style'] + plan_names(year)
+    ['user_id', 'user_email', 'attendee_id'] + AttendeeAttributes.names + ['user_paid_deposit', 'guardian', 'shirt_style'] + plan_names(year)
   end
 
   def self.render year, attendees
@@ -49,7 +52,7 @@ class AttendeesCsvExporter
   end
 
   module AttendeeAttributes
-    FIRST_ATRS = %w[aga_id family_name given_name country phone].freeze
+    FIRST_ATRS = %w[aga_id family_name given_name alternate_name country phone].freeze
     LAST_ATRS = %w[special_request roomate_request].freeze
     INTERNAL_ATRS = %w[id shirt_id user_id understand_minor guardian_attendee_id].freeze
 

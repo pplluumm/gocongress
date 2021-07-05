@@ -1,12 +1,13 @@
 class HomeController < ApplicationController
-  rescue_from  ActionView::MissingTemplate, :with => :missing_template
+  rescue_from ActionView::MissingTemplate, :with => :missing_template
+  rescue_from ActionController::UnknownFormat, :with => :missing_template
 
   def index
     @bodyClassList = "homepage"
     @slides = SlideSet.new(@year.year).slides_as_arrays
     @contents = Content.yr(@year).homepage.unexpired.newest_first
     @years = 2011..LATEST_YEAR
-    @logo_file = logo_file(@year)
+    @upcoming = CONGRESS_START_DATE[@year.year] >= Date.current
   end
 
   def access_denied
@@ -24,12 +25,6 @@ protected
 
   private
 
-  def logo_file year
-    year.to_i == 2013 ? '2013.jpg' : "#{@year.year}.png"
-  end
-
-  private
-
   # Image spiders are requesting / with
   # HTTP_ACCEPT = image/jpeg,image/gif,image/bmp,image/png
   # which causes a MissingTemplate error.
@@ -39,6 +34,6 @@ protected
   # https://github.com/rails/rails/issues/4127
   #
   def missing_template
-    render :nothing => true, :status => 406
+    head :not_acceptable
   end
 end

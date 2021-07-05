@@ -1,10 +1,8 @@
-class PlanCategory < ActiveRecord::Base
+class PlanCategory < ApplicationRecord
   include YearlyModel
 
   belongs_to :event
   has_many :plans
-
-  attr_accessible :description, :event_id, :mandatory, :name, :ordinal
 
   validates :event, :presence => true
   validates :name, :presence => true,
@@ -18,10 +16,15 @@ class PlanCategory < ActiveRecord::Base
   # Scopes
   # ----------------
 
-  scope :alphabetical, order(:name)
-  scope :mandatory, where(:mandatory => true)
-  scope :nonempty, where("exists (select * from plans p
-    where p.plan_category_id = plan_categories.id)")
+  scope :alphabetical, -> { order(:name) }
+  scope :mandatory, -> { where(:mandatory => true) }
+  scope :nonempty, -> {
+    where("exists (
+      select * from plans p
+      where p.plan_category_id = plan_categories.id
+    )")
+  }
+  scope :single, -> { where(:single => true) }
 
   # Class methods
   # ----------------

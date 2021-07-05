@@ -1,0 +1,38 @@
+%noscript
+  .noscript-warning
+    %h3 You're <em>really</em> going to want Javascript to fill out this form.
+
+- if @year.registration_phase == "canceled"
+  = render :partial => 'canceled'
+
+= form_for(@registration) do |f|
+  = f.hidden_field :user_id
+  = hidden_field_tag 'type', params[:type]
+
+  = render :partial => 'shared/error_messages', :locals => { :resource => @registration }
+  = render :partial => "/#{@year.year}/registrations/personal_info", :locals => { :f => f } rescue render :partial => 'personal_info', :locals => { :f => f }
+  = render :partial => "/#{@year.year}/registrations/shirt_info", :locals => { :f => f } rescue render :partial => 'shirt_info', :locals => { :f => f }
+  = render :partial => "/#{@year.year}/registrations/player_info", :locals => { :f => f } rescue render :partial => 'player_info', :locals => { :f => f }
+  = render :partial => 'contact_info', :locals => { :f => f }
+  = render :partial => 'emergency_info', :locals => { :f => f }
+  = render :partial => 'plans', :locals => { :f => f }
+  = render :partial => 'wishes', :locals => { :f => f }
+  - unless @year.year == 2016
+    = render :partial => 'activities', :locals => { :f => f }
+
+  - if current_user.admin?
+    = render :partial => 'admin_info', :locals => { :f => f }
+
+  = render :partial => 'code_of_conduct'
+
+  - if @year.registration_phase == "canceled" && !current_user_is_admin?
+    = render :partial => 'canceled'
+  - else
+    %p= f.submit 'Continue'
+
+= content_for :footnote
+
+:javascript
+  $("form").submit(function() {
+    $("input").removeAttr("disabled");
+  });

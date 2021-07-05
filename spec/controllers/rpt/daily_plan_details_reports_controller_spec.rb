@@ -1,30 +1,31 @@
-require "spec_helper"
+require "rails_helper"
+require "controllers/rpt/shared_examples_for_reports"
 
-describe Rpt::DailyPlanDetailsReportsController do
-  let(:admin) { create :admin }
-  before { sign_in admin }
+RSpec.describe Rpt::DailyPlanDetailsReportsController, :type => :controller do
+  it_behaves_like "a report", %w[html csv]
 
-  describe '#new' do
-    render_views
+  describe '#show' do
+    let(:admin) { create :admin }
+    before { sign_in admin }
 
-    it "succeeds, assigns all daily plans, including disabled" do
-      p1 = create :plan, daily: true
-      p2 = create :plan, daily: true, disabled: false
-      get :new, year: Date.current.year
-      response.should be_success
-      assigns('daily_plans').should =~ [p1, p2]
+    context "html" do
+      render_views
+
+      it "succeeds" do
+        get :show, params: { year: Date.current.year }
+        expect(response).to be_success
+      end
     end
-  end
 
-  describe '#create' do
-    it "delegates to DailyPlanCsvExporter" do
-      plan = create :plan, daily: true
-      exporter = double("DailyPlanDetailsExporter")
-      DailyPlanDetailsExporter.stub(:new) { exporter }
-      exporter.should_receive(:to_csv)
-      get :create, plan_id: plan.id, year: Date.current.year
-      response.should be_success
-      expect(response.content_type).to eq('text/csv')
+    context "csv" do
+      it "delegates to DailyPlanDetailsExporter" do
+        exporter = double("DailyPlanDetailsExporter")
+        allow(DailyPlanDetailsExporter).to receive(:new) { exporter }
+        expect(exporter).to receive(:to_csv)
+        get :show, format: 'csv', params: { year: Date.current.year }
+        expect(response).to be_success
+        expect(response.content_type).to eq('text/csv')
+      end
     end
   end
 end

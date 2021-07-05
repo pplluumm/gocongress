@@ -1,7 +1,7 @@
-require "spec_helper"
+require "rails_helper"
 require "controllers/rpt/shared_examples_for_reports"
 
-describe Rpt::CostSummaryReportsController do
+RSpec.describe Rpt::CostSummaryReportsController, :type => :controller do
   let(:staff) { create :staff }
 
   it_behaves_like "a report", %w[html csv]
@@ -9,7 +9,7 @@ describe Rpt::CostSummaryReportsController do
   describe 'html format' do
     it "assigns certain variables" do
       sign_in staff
-      get :show, format: 'html', year: staff.year
+      get :show, format: 'html', params: { year: staff.year }
       expect(assigns(:user_count)).to_not be_nil
       expect(assigns(:attendee_count)).to_not be_nil
     end
@@ -18,7 +18,7 @@ describe Rpt::CostSummaryReportsController do
   describe 'csv format' do
     it "succeeds, renders csv" do
       sign_in staff
-      get :show, format: 'csv', year: staff.year
+      get :show, format: 'csv', params: { year: staff.year }
       expect(response).to be_success
       expect(response.content_type).to eq('text/csv')
     end

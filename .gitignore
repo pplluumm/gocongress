@@ -11,3 +11,7 @@ coverage.data
 coverage
 *.swp
 *.swo
+.idea
+spec/examples.txt
+public/assets
+.vscode/settings.json

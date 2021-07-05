@@ -1,3 +1,5 @@
+require 'mini_magick'
+
 class ApplicationController < ActionController::Base
   protect_from_forgery
   helper_method :current_user_is_admin?, :page_title,
@@ -5,9 +7,11 @@ class ApplicationController < ActionController::Base
 
   # set_year_from_params() should run first because it
   # defines @year which other methods depend on.
-  before_filter :set_year_from_params
-  before_filter :set_yearly_vars
-  before_filter :set_display_timezone
+  before_action :set_year_from_params
+  before_action :set_yearly_vars
+  before_action :set_display_timezone
+  before_action :set_logo_file
+  before_action :set_og_image
 
   # When running functional tests or controller specs,
   # default_url_options() is called before callbacks, so we do not
@@ -21,9 +25,30 @@ class ApplicationController < ActionController::Base
     Time.zone = @year.timezone
   end
 
+  def set_logo_file
+    @logo_file = logo_file(@year)
+  end
+
+  # Set up an Open Graph image for sharing on social media
+  def set_og_image
+    og_image_path = "#{@year.year}/og-image.png"
+
+    if helpers.asset_exists? og_image_path
+      image = MiniMagick::Image.open(Rails.application.assets.resolve(og_image_path))
+      @og_image = {
+        :path => og_image_path,
+        :width => image[:width],
+        :height => image[:height]
+      }
+    end
+  end
+
   def set_year_from_params
-    @year = Year.find_by_year(extract_year_from_params)
-    raise_routing_error("Year not found") unless @year.present?
+    year = extract_year_from_params
+    @year = Year.where(year: year).first
+    unless @year.present?
+      raise_routing_error("Year not found: #{year}: Try test:prepare")
+    end
   end
 
   def set_yearly_vars
@@ -38,10 +63,10 @@ class ApplicationController < ActionController::Base
   end
 
   # Redirect Devise after sign in (or after updating the password?)
-  # Go to the "My Account" page, unless there is no attendee yet.
+  # Go to the "My Account" page.
   def after_sign_in_path_for user
     raise ArgumentError unless user.is_a?(User)
-    user.attendees.empty? ? new_attendee_path : user_path(user)
+    user_path(user)
   end
 
   rescue_from CanCan::AccessDenied do |exception|
@@ -103,14 +128,7 @@ protected
     end
   end
 
-  def allow_only_self_or_admin
-    target_user_id = params[:id].to_i
-    unless current_user && (current_user.id.to_i == target_user_id || current_user.admin?)
-      render_access_denied
-    end
-  end
-
-private
+  private
 
   # `extract_year_from_params` returns an integer year, obtained either
   # from the params hash or the deprecated CONGRESS_YEAR constant.
@@ -120,6 +138,18 @@ private
     year = params[:year].present? ? params[:year].to_i : CONGRESS_YEAR
     raise_routing_error("Invalid year") unless (2011..LATEST_YEAR).include?(year)
     return year
+  end
+
+  def logo_file year
+    if year.to_i == 2015
+      '2015-transparent.png'
+    elsif year.to_i == 2014
+      '2014-logo.png'
+    elsif year.to_i == 2013
+      '2013.jpg'
+    else
+      "#{@year.year}.png"
+    end
   end
 
   def render_access_denied
